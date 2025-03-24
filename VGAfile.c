@@ -6,9 +6,9 @@
 #define HEIGHT 240  // VGA height
 #define WIDTH 320   // VGA width
 
-#define FIRSTX 33  // x-coordinate of top left square center
-#define FIRSTY 25  // y-coordinate of top left square center
-#define SHIFT 27  // pixel shift to get to adjacent squares x or y location (SAME FOR BOTH X
+#define FIRSTX 21  // x-coordinate of top left square center
+#define FIRSTY 37  // y-coordinate of top left square center
+#define SHIFT 24  // pixel shift to get to adjacent squares x or y location (SAME FOR BOTH X
       // AND Y)
 
 // Background image array
@@ -257,7 +257,7 @@ static const int back[] = {
 
 void clear_screen();
 void draw_pixel(int x, int y, short int color);
-void draw_token(int x, int y, short int color);
+void draw_token(int x, int y, short int color, int radius);
 int pixel_buffer_start;
 
 int main(void) {  // need to integrate with 2d player arrays later
@@ -265,7 +265,7 @@ int main(void) {  // need to integrate with 2d player arrays later
   pixel_buffer_start = *pixel_ctrl_ptr;
 
   background_plot();
-  draw_token(33, 25, 0xffff);
+  draw_token(21+24, 37+24, 0xffff, 9);
   return 0;
 }
 
@@ -285,11 +285,10 @@ void draw_pixel(int x, int y, short int color) {
   return;
 }
 
-void draw_token(int x, int y, short int color) {
-  // radius = 13 pixels
-  for (int j = y - 11; j <= y + 11; j++) {
-    for (int i = x - 11; i <= x + 11; i++) {
-      if (((i - x) * (i - x) + (j - y) * (j - y)) <= 121) {
+void draw_token(int x, int y, short int color, int radius) {
+  for (int j = y - radius; j <= y + radius; j++) {
+    for (int i = x - radius; i <= x + radius; i++) {
+      if (((i - x) * (i - x) + (j - y) * (j - y)) <= radius*radius) {
         draw_pixel(i, j, color);
       }
     }
@@ -305,4 +304,6 @@ void background_plot() {
       draw_pixel(x, y, color);
     }
   }
+  draw_token(260, 50, 0, 30);
+  draw_token(260, 180, 0xffff, 30);
 }
