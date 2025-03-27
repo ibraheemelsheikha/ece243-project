@@ -258,6 +258,7 @@ static const int back[] = {
 void clear_screen();
 void draw_pixel(int x, int y, short int color);
 void draw_token(int x, int y, short int color, int radius);
+void draw_arrow(int x, int y, int fact);
 int pixel_buffer_start;
 
 int main(void) {  // need to integrate with 2d player arrays later
@@ -266,6 +267,8 @@ int main(void) {  // need to integrate with 2d player arrays later
 
   background_plot();
   draw_token(21+24, 37+24, 0xffff, 9);
+  draw_arrow(260, 85,1); //Black
+  draw_arrow(260, 145,-1); //White
   return 0;
 }
 
@@ -293,6 +296,14 @@ void draw_token(int x, int y, short int color, int radius) {
       }
     }
   }
+}
+
+void draw_arrow(int x, int y, int fact) {
+    for (int i = 0; i < 20; i++) {
+        for (int j = -i; j <= i; j++) {
+            draw_pixel(x + j, y+fact*i, 0xf800);
+        }
+    }
 }
 
 void background_plot() {
