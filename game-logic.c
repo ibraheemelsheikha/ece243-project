@@ -289,6 +289,14 @@ void drawPiece(int x, int y, short int color, int radius) {
   }
 }
 
+void draw_arrow(int x, int y, int fact) {
+    for (int i = 0; i < 20; i++) {
+        for (int j = -i; j <= i; j++) {
+            draw_pixel(x + j, y+fact*i, 0xf800);
+        }
+    }
+}
+
 void drawValidCircle(int x, int y, int radius) {
   for (int j = y - radius; j <= y + radius; j++) {
     for (int i = x - radius; i <= x + radius; i++) {
