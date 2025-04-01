@@ -8816,50 +8816,31 @@ void getMouseCoordinates(int *x, int *y) {
   *x = FIRSTX;
   *y = FIRSTY;
 
+  unsigned char byte1 = 0;
+  unsigned char byte2 = 0;
+  unsigned char byte3 = 0;
+
+  volatile int *PS2_ptr = (int *)0xFF200100;  // PS/2 port address
+
+  int PS2_data, RVALID;
+
   while (1) {
-    // read ps/2 data register
-    int PS2_data = *PS2_PTR;
-
-    // check if data is valid (15th bit)
-    if (!(PS2_data & 0x8000)) continue;
-
-    // extract 3 bytes
-    unsigned int byte1 = PS2_data & 0xFF;
-    int PS2_data2 = *PS2_PTR;
-    unsigned int byte2 = PS2_data2 & 0xFF;
-    int PS2_data3 = *PS2_PTR;
-    unsigned int byte3 = PS2_data3 & 0xFF;
-
-    // check if this is start of a packet
-    if (!(byte1 & 0x08)) continue;
-
-    // extract left click info and relative xy position
-    int left_click = byte1 & 0x01;
-
-    // accounting for 2's complement
-    int dx = (byte2 & 0x80) ? (byte2 - 256) : byte2;
-    int dy = (byte3 & 0x80) ? (byte3 - 256) : byte3;
-
-    // new xy position
-    *x += dx;
-    *y += dy;
-
-    // boundaries for cursor
-    if (*x < 0) {
-      *x = 0;
+    PS2_data = *(PS2_ptr);         // read the Data register in the PS/2 port
+    RVALID = (PS2_data & 0x8000);  // extract the RVALID field
+    if (RVALID != 0) {
+      /* always save the last three bytes received */
+      byte1 = byte2;
+      byte2 = byte3;
+      byte3 = PS2_data & 0xFF;
     }
-    if (*x >= WIDTH) {
-      *x = WIDTH - 1;
-    }
-    if (*y < 0) {
-      *y = 0;
-    }
-    if (*y >= HEIGHT) {
-      *y = HEIGHT - 1;
+    if ((byte2 == 0xAA) && (byte3 == 0x00)) {
+      // mouse inserted; initialize sending of data
+      *(PS2_ptr) = 0xF4;
     }
 
-    // if left click, return new xy values
-    if (left_click) {
+    if (byte1 & 0x01) {
+      *x += byte2; // new x
+      *y += byte3; // new y
       return;
     }
   }
