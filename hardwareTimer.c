@@ -4,6 +4,7 @@
 #define TIMER_BASE ((volatile uint32_t *)0xFF202000)
 #define HEX_BASE1 ((volatile uint32_t *)0xff200020)
 #define HEX_BASE2 ((volatile uint32_t *)0xff200030)
+#define LEDS ((volatile uint32_t *)0xff200000)
 
 const uint8_t BIT_CODES[10] = {
     0b0111111, 0b0000110, 0b1011011, 0b1001111, 0b1100110,
@@ -43,7 +44,8 @@ int main() {
     delay();
     counter--;
   }
-
   HEX_DISP(0);
+  volatile uint32_t *led = LEDS;
+  *led = 0b1111111111;
   return 0;
 }
