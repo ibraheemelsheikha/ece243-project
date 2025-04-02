@@ -8688,7 +8688,7 @@ int main(void) {  // need to integrate with 2d player arrays later
       byte3 = PS2_data & 0xFF;
       counter++;
       if (counter % 3 == 0) {
-        printf("bytes: %d %d %d\n", byte1, byte2, byte3);
+        // printf("bytes: %d %d %d\n", byte1, byte2, byte3);
         int x_sign_bit = byte1 & 0x10;
         int y_sign_bit = byte1 & 0x20;
 
@@ -8701,20 +8701,32 @@ int main(void) {  // need to integrate with 2d player arrays later
         uint16_t dx = byte2;
         uint16_t dy = byte3;
 
-        printf("(dx, dy): (%d, %d)\n", dx, dy);
+        // printf("(dx, dy): (%d, %d)\n", dx, dy);
 
-        if (xdir == 1) {
-          changex = -((255 - dx) >> 2);
+        if (xdir == 0) {
+          changex = byte2;
+
         } else {
-          changex = (dx >> 2);
-        }
-        if (ydir == 1) {
-          changey = ((255 - dy) >> 2);
-        } else {
-          changey = -(dy >> 2);
+          int sign_extended_twos = 0xFFFFFF00 + byte2;
+
+          changex = sign_extended_twos;
         }
 
-        printf("changes: (%d, %d)\n", changex, changey);
+        if (x_sign_bit == 0) {
+          changex = byte2;
+        } else {
+          int sign_extended_twos = 0xFFFFFF00 + byte2;
+          changex = sign_extended_twos;
+        }
+
+        if (y_sign_bit == 0) {
+          changey = byte3;
+        } else {  // negative dx
+          int sign_extended_twos = 0xFFFFFF00 + byte3;
+          changey = sign_extended_twos;
+        }
+
+        // printf("changes: (%d, %d)\n", changex, changey);
 
         x += changex;
         y += changey;
