@@ -8646,8 +8646,8 @@ void waitForVsync() {
 }
 
 void getMouseCoordinates(int *x, int *y) {
-  *x = FIRSTX;
-  *y = FIRSTY;
+  *x = 0;
+  *y = 0;
 
   unsigned char byte1 = 0;
   unsigned char byte2 = 0;
@@ -8684,8 +8684,8 @@ short int Buffer1[240][512];
 short int Buffer2[240][512];
 
 int main(void) {  // need to integrate with 2d player arrays later
-  int x = FIRSTX;
-  int y = FIRSTY;
+  int x = 0;
+  int y = 0;
 
   unsigned char byte1 = 0;
   unsigned char byte2 = 0;
@@ -8717,18 +8717,35 @@ int main(void) {  // need to integrate with 2d player arrays later
       byte1 = byte2;
       byte2 = byte3;
       byte3 = PS2_data & 0xFF;
-		counter++;
-    }
-    if ((byte2 == 0xAA) && (byte3 == 0x00)) {
-      // mouse inserted; initialize sending of data
-      *(PS2_ptr) = 0xF4;
-    }
-	if (counter % 3 == 2) {
-	  x+=byte2;
-		y+=byte3;
-	}
+      counter++;
+      if ((byte2 == 0xAA) && (byte3 == 0x00)) {
+        // mouse inserted; initialize sending of data
+        *(PS2_ptr) = 0xF4;
+        if (counter % 3 == 2) {
+          int x_sign_bit = byte1 & 0x10;
+          int y_sign_bit = byte1 & 0x20;
 
-	drawArrowCursor(x, y);
+          if (x_sign_bit == 1) {
+            x = x - ((255 - byte2) >> 2);
+          } else {
+            x = x + (byte2 >> 2);
+          }
+          if (y_sign_bit == 1) {
+            y = y + ((255 - byte3) >> 2);
+          } else {
+            y = y - (byte3 >> 2);
+          }
+
+          x += byte2;
+          y += byte3;
+          counter = 2;
+        } else {
+          counter += 1;
+        }
+      }
+    }
+
+    drawArrowCursor(x, y);
     waitForVsync();
     pixel_buffer_start = *(pixel_ctrl_ptr + 1);
   }
