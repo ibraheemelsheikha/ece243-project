@@ -8645,47 +8645,12 @@ void waitForVsync() {
   }
 }
 
-void getMouseCoordinates(int *x, int *y) {
-  *x = 0;
-  *y = 0;
-
-  unsigned char byte1 = 0;
-  unsigned char byte2 = 0;
-  unsigned char byte3 = 0;
-
-  volatile int *PS2_ptr = (int *)0xFF200100;  // PS/2 port address
-
-  int PS2_data, RVALID;
-
-  while (1) {
-    PS2_data = *(PS2_ptr);         // read the Data register in the PS/2 port
-    RVALID = (PS2_data & 0x8000);  // extract the RVALID field
-    if (RVALID != 0) {
-      /* always save the last three bytes received */
-      byte1 = byte2;
-      byte2 = byte3;
-      byte3 = PS2_data & 0xFF;
-    }
-    if ((byte2 == 0xAA) && (byte3 == 0x00)) {
-      // mouse inserted; initialize sending of data
-      *(PS2_ptr) = 0xF4;
-    }
-    drawArrowCursor(byte2, byte3);
-
-    if (byte1 & 0x01) {
-      *x += byte2;  // new x
-      *y += byte3;  // new y
-      return;
-    }
-  }
-}
-
 short int Buffer1[240][512];
 short int Buffer2[240][512];
 
 int main(void) {  // need to integrate with 2d player arrays later
-  int x = 0;
-  int y = 0;
+  int x = 21;
+  int y = 37;
 
   unsigned char byte1 = 0;
   unsigned char byte2 = 0;
@@ -8721,31 +8686,36 @@ int main(void) {  // need to integrate with 2d player arrays later
       if ((byte2 == 0xAA) && (byte3 == 0x00)) {
         // mouse inserted; initialize sending of data
         *(PS2_ptr) = 0xF4;
-        if (counter % 3 == 2) {
-          int x_sign_bit = byte1 & 0x10;
-          int y_sign_bit = byte1 & 0x20;
+      }
+      if (counter % 3 == 2) {
+        int x_sign_bit = byte1 & 0x10;
+        int y_sign_bit = byte1 & 0x20;
 
-          if (x_sign_bit == 1) {
-            x = x - ((255 - byte2) >> 2);
-          } else {
-            x = x + (byte2 >> 2);
-          }
-          if (y_sign_bit == 1) {
-            y = y + ((255 - byte3) >> 2);
-          } else {
-            y = y - (byte3 >> 2);
-          }
-
-          x += byte2;
-          y += byte3;
-          counter = 2;
-        } else {
-          counter += 1;
+        if (x_sign_bit == 1) {
+          byte2 = (int)(byte2 | ~0x1FF);
         }
+        if (y_sign_bit == 1) {
+          byte3 = (int)(byte3 | ~0x1FF);
+        }
+
+        x += byte2;
+        y += byte3;
+
+        if (x < 0) x = 0;
+        if (x > 319) x = 319;
+        if (y < 0) y = 0;
+        if (y > 239) y = 239;
+
+        counter = 2;
+        printf("byte2: %d\n", byte2);
+        printf("byte3: %d\n", byte3);
+      } else {
+        counter++;
       }
     }
 
     drawArrowCursor(x, y);
+    printf("drew cursor at (%d, %d)\n", x, y);
     waitForVsync();
     pixel_buffer_start = *(pixel_ctrl_ptr + 1);
   }
