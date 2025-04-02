@@ -8624,14 +8624,14 @@ void drawArrowCursor(int x, int y) {
   for (int i = 0; i < 8; i++) {
     for (int j = -i; j <= i; j++) {
       if (x + j >= 0 && x + j < WIDTH && y + i >= 0 && y + i < HEIGHT) {
-        drawPixel(x + j, y + i, 0xffff);
+        drawPixel(x + j, y + i, 0x14fd);
       }
     }
   }
   for (int i = 0; i < 6; i++) {
     for (int j = -2; j <= 2; j++) {
       if (x + j >= 0 && x + j < WIDTH && y + 8 + i >= 0 && y + 8 + i < HEIGHT) {
-        drawPixel(x + j, y + 8 + i, 0xffff);
+        drawPixel(x + j, y + 8 + i, 0x14fd);
       }
     }
   }
