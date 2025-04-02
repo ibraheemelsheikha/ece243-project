@@ -4,6 +4,7 @@
 
 volatile int *pixel_ctrl_ptr = (int *)0xff203020;
 int pixel_buffer_start;
+int counter = 0;
 
 #define PS2_PTR 0xFF200100
 #define BLACK -1
@@ -8716,18 +8717,18 @@ int main(void) {  // need to integrate with 2d player arrays later
       byte1 = byte2;
       byte2 = byte3;
       byte3 = PS2_data & 0xFF;
+		counter++;
     }
     if ((byte2 == 0xAA) && (byte3 == 0x00)) {
       // mouse inserted; initialize sending of data
       *(PS2_ptr) = 0xF4;
     }
-    drawArrowCursor(byte2, byte3);
+	if (counter % 3 == 2) {
+	  x+=byte2;
+		y+=byte3;
+	}
 
-    if (byte1 & 0x01) {
-      x += byte2;  // new x
-      y += byte3;  // new y
-    }
-
+	drawArrowCursor(x, y);
     waitForVsync();
     pixel_buffer_start = *(pixel_ctrl_ptr + 1);
   }
