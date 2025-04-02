@@ -1,8 +1,8 @@
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
+volatile int *pixel_ctrl_ptr = (int *)0xff203020;
 int pixel_buffer_start;
 
 #define PS2_PTR 0xFF200100
@@ -8555,17 +8555,6 @@ static const int back[] = {
     0x2044, 0x1824, 0x1003, 0x1004, 0x1024, 0x1024, 0x1845, 0x1844, 0x1044,
     0x1023, 0x1023, 0x1003};
 
-bool positionInBounds(int row, int col) {
-  return (col >= 0 && col < 8 && row >= 0 && row < 8);
-}
-
-int squareContents(int row, int col) {
-  // this function will be written after figuring out how to take input from
-  // mouse if white, return 1
-  // else if black, return -1
-  // else if empty, return 0
-}
-
 void drawPixel(int x, int y, short int color) {
   volatile short int *one_pixel_address;
   one_pixel_address = (short int *)(pixel_buffer_start + (y << 10) + (x << 1));
@@ -8646,182 +8635,12 @@ void drawArrowCursor(int x, int y) {
   }
 }
 
-int setFirstPlayer() {
-  // seed the rng
-  srand(time(NULL));
-  return (rand() % 2) ? 1 : -1;  // return either -1 (black) or 1 (white)
-  // can maybe have a coin-flipping animation for this
-}
-
-bool checkLegalInDirection(int row, int col, int color, int deltaRow,
-                           int deltaCol) {
-  int opp_color = color * -1;
-
-  // if current position is occupied or out-of-bounds, return false
-  if (squareContents(row, col) != EMPTY || !positionInBounds(row, col)) {
-    return false;
-  }
-
-  // move to adjacent square
-  int newRow = row + deltaRow;
-  int newCol = col + deltaCol;
-
-  // if new position out of bounds, if a player's piece is already there, or if
-  // it is empty, return false
-  if ((!positionInBounds(newRow, newCol)) ||
-      squareContents(newRow, newCol) == color ||
-      squareContents(newRow, newCol) == EMPTY)
-    return false;
-
-  // while the new position is in-bounds and there is an opponent's piece in the
-  // direction we are travelling, keep checking in that direction, as it is
-  // valid
-  while ((positionInBounds(newRow, newCol)) &&
-         (squareContents(newRow, newCol) == opp_color)) {
-    newRow += deltaRow;
-    newCol += deltaCol;
-  }
-  // while loop just exited either because position is out-of-bounds, or because
-  // it encountered a non-opponent piece at this point, (newRow, newCol)
-  // represent the position immediately after the last opponent piece in that
-  // direction
-
-  // check again if new position is out-of-bounds
-  if (!positionInBounds(newRow, newCol)) {
-    return false;
-  }
-
-  // if opponent's pieces have been sandwiched, return true
-  if (squareContents(newRow, newCol) == color) {
-    return true;
-  }
-
-  return false;
-}
-
-void flipTiles(int row, int col, int color) {
-  // going in all eight directions surrounding a given square
-  for (int deltaRow = -1; deltaRow <= 1; deltaRow++) {
-    for (int deltaCol = -1; deltaCol <= 1; deltaCol++) {
-      if (checkLegalInDirection(row, col, color, deltaRow, deltaCol)) {
-        int newRow = row + deltaRow;
-        int newCol = col + deltaCol;
-
-        while (squareContents(newRow, newCol) != color) {
-          drawPiece(newRow, newCol, color, PIECE_RADIUS);
-          newRow += deltaRow;
-          newCol += deltaCol;
-        }
-      }
-    }
-  }
-
-  return;
-}
-
-void displayLegalMoves(int row, int col, int color) {
-  // check all legal moves in all directions and draw circles indicating valid
-  // moves
-  for (int deltaRow = -1; deltaRow <= 1; deltaRow++) {
-    for (int deltaCol = -1; deltaCol <= 1; deltaCol++) {
-      if (checkLegalInDirection(row, col, color, deltaRow, deltaCol)) {
-        drawValidCircle(row, col, PIECE_RADIUS);
-      }
-    }
-  }
-}
-
-bool isLegalMove(int row, int col, int color) {
-  for (int deltaRow = -1; deltaRow <= 1; deltaRow++) {
-    for (int deltaCol = -1; deltaCol <= 1; deltaCol++) {
-      if (checkLegalInDirection(row, col, color, deltaRow, deltaCol))
-        return true;
-    }
-  }
-  return false;
-}
-
-// counts how many opponent pieces are captured for a particular move (will be
-// used for hint button)
-int findScore(int row, int col, int color) {
-  int score = 0;
-  for (int deltaRow = -1; deltaRow <= 1; deltaRow++) {
-    for (int deltaCol = -1; deltaCol <= 1; deltaCol++) {
-      if (checkLegalInDirection(row, col, color, deltaRow, deltaCol)) {
-        int newRow = row + deltaRow;
-        int newCol = col + deltaCol;
-
-        while (squareContents(newRow, newCol) != color) {
-          score++;
-          newRow += deltaRow;
-          newCol += deltaCol;
-        }
-      }
-    }
-  }
-  return score;
-}
-
-// finds the best possible move (will be used for hint button)
-int findBestMove(int color, int *row, int *col) {
-  int highScore = 0;
-  for (int r = 0; r < 8; r++) {
-    for (int c = 0; c < 8; c++) {
-      if (squareContents(r, c) == EMPTY) {
-        int score = findScore(r, c, color);
-        if (highScore < score) {
-          highScore = score;
-          *row = r;
-          *col = c;
-        }
-      }
-    }
-  }
-  return highScore;
-}
-
-bool isGameOver() {
-  int row = 0, col = 0;
-  if ((findBestMove(1, &row, &col) == 0) &&
-      (findBestMove(-1, &row, &col) == 0)) {
-    return true;
-  }
-  return false;
-}
-
-bool hasLegalMoves(int color) {
-  for (int row = 0; row < 8; row++) {
-    for (int col = 0; col < 8; col++) {
-      if (isLegalMove(row, col, color)) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-void switchPlayer(int *currentPlayer) {
-  *currentPlayer = (*currentPlayer == BLACK) ? WHITE : BLACK;
-}
-
-void winner() {
-  int wCount = 0, bCount = 0;
-
-  for (int row = 0; row < 8; row++) {
-    for (int col = 0; col < 8; col++) {
-      if (squareContents(row, col) == WHITE) {
-        wCount++;
-      } else if (squareContents(row, col) == BLACK) {
-        bCount++;
-      }
-    }
-  }
-  if (wCount > bCount) {
-    printf("W player wins.\n");
-  } else if (bCount > wCount) {
-    printf("B player wins.\n");
-  } else {
-    printf("Draw!\n");
+void waitForVsync() {
+  int status;
+  *pixel_ctrl_ptr = 1;
+  status = *(pixel_ctrl_ptr + 3);
+  while ((status & 0x01) != 0) {
+    status = *(pixel_ctrl_ptr + 3);
   }
 }
 
@@ -8850,38 +8669,67 @@ void getMouseCoordinates(int *x, int *y) {
       // mouse inserted; initialize sending of data
       *(PS2_ptr) = 0xF4;
     }
-
     drawArrowCursor(byte2, byte3);
 
     if (byte1 & 0x01) {
-      *x += byte2; // new x
-      *y += byte3; // new y
+      *x += byte2;  // new x
+      *y += byte3;  // new y
       return;
     }
   }
 }
 
-int main(void) {
-  int currentPlayer = setFirstPlayer();
-  int row, col;
+short int Buffer1[240][512];
+short int Buffer2[240][512];
 
-  backgroundPlot();  // Draw the board
+int main(void) {  // need to integrate with 2d player arrays later
+  int x = FIRSTX;
+  int y = FIRSTY;
 
-  while (!isGameOver()) {
-    if (!hasLegalMoves(currentPlayer)) {
-      switchPlayer(&currentPlayer);
-      if (!hasLegalMoves(currentPlayer))
-        break;  // No moves for both players, game over
+  unsigned char byte1 = 0;
+  unsigned char byte2 = 0;
+  unsigned char byte3 = 0;
+
+  volatile int *PS2_ptr = (int *)0xFF200100;  // PS/2 port address
+
+  int PS2_data, RVALID;
+  *(pixel_ctrl_ptr + 1) = (int)&Buffer1;
+  waitForVsync();
+  pixel_buffer_start = *pixel_ctrl_ptr;
+  clearScreen();
+
+  *(pixel_ctrl_ptr + 1) = (int)&Buffer2;
+  pixel_buffer_start = *(pixel_ctrl_ptr + 1);
+  clearScreen();
+
+  while (1) {  // Main code
+    backgroundPlot();
+
+    drawPiece(21 + 24, 37 + 24, 0xffff, 9);
+    drawArrow(260, 85, 1);    // Black
+    drawArrow(260, 145, -1);  // White
+
+    PS2_data = *(PS2_ptr);         // read the Data register in the PS/2 port
+    RVALID = (PS2_data & 0x8000);  // extract the RVALID field
+    if (RVALID != 0) {
+      /* always save the last three bytes received */
+      byte1 = byte2;
+      byte2 = byte3;
+      byte3 = PS2_data & 0xFF;
+    }
+    if ((byte2 == 0xAA) && (byte3 == 0x00)) {
+      // mouse inserted; initialize sending of data
+      *(PS2_ptr) = 0xF4;
+    }
+    drawArrowCursor(byte2, byte3);
+
+    if (byte1 & 0x01) {
+      x += byte2;  // new x
+      y += byte3;  // new y
     }
 
-    getMouseCoordinates(&row, &col);
-
-    if (isLegalMove(row, col, currentPlayer)) {
-      flipTiles(row, col, currentPlayer);
-      switchPlayer(&currentPlayer);
-    }
+    waitForVsync();
+    pixel_buffer_start = *(pixel_ctrl_ptr + 1);
   }
-
-  winner();
   return 0;
 }
