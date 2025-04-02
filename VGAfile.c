@@ -8557,6 +8557,8 @@ void draw_arrow(int x, int y, int fact);
 void draw_arrow_cursor(int x, int y);
 
 volatile int* pixel_ctrl_ptr = (int*)0xff203020;
+volatile int* charBuff = (int*)0xFF203030;
+
 int pixel_buffer_start;
 
 short int Buffer1[240][512];
@@ -8573,11 +8575,13 @@ int main(void) {  // need to integrate with 2d player arrays later
   clear_screen();
 
   while (1) {  // Main code
-    background_plot();
+	background_plot();
     draw_token(21 + 24, 37 + 24, 0xffff, 9);
     draw_arrow(260, 85, 1);     // Black
     draw_arrow(260, 145, -1);   // White
     draw_arrow_cursor(90, 90);  // Update X/Y based on mouse dx/dy
+	calc_score(248, 40, 0xffff, 98);//Black center
+	calc_score(248, 170, 0x0000, 18);//WHTTE center
     wait_for_vsync();
     pixel_buffer_start = *(pixel_ctrl_ptr + 1);
   }
@@ -8642,6 +8646,137 @@ void draw_arrow_cursor(int x, int y) {
       }
     }
   }
+}
+
+void calc_score(int x, int y, short int color, int score){
+	int dig1 = (int)(score/10);
+	draw_score(x,y,dig1,color);
+	int dig2 = score%10;
+	draw_score(x+15,y,dig2,color);
+}
+
+void draw_line(int x0, int y0, int x1, int y1, int color) {
+  int y_step = 1;
+  bool is_steep = abs(y1 - y0) > abs(x1 - x0);
+  if (is_steep) {
+    int temp = x0;
+    x0 = y0;
+    y0 = temp;
+
+    temp = x1;
+    x1 = y1;
+    y1 = temp;
+  }
+
+  if (x0 > x1) {
+    int temp = x0;
+    x0 = x1;
+    x1 = temp;
+
+    temp = y0;
+    y0 = y1;
+    y1 = temp;
+  }
+
+  int deltax = x1 - x0;
+  int deltay = abs(y1 - y0);
+  int error = -(deltax / 2);
+  int y = y0;
+  if (y0 < y1) {
+    y_step = 1;
+  } else {
+    y_step = -1;
+  }
+
+  for (int x = x0; x < x1; x++) {
+    if (is_steep) {
+      draw_pixel(y, x, color);  // fix
+    } else {
+      draw_pixel(x, y, color);  // fix
+    }
+    error = error + deltay;
+    if (error > 0) {
+      y += y_step;
+      error -= deltax;
+    }
+  }
+}
+
+void draw_thick_line(int x0, int y0, int x1, int y1, int color, int thickness) {
+    for (int i = 0; i < thickness; i++) {
+        if (x0 == x1) { // Vertical Line
+            draw_line(x0 + i, y0, x1 + i, y1, color);
+        } else if (y0 == y1) { // Horizontal Line
+            draw_line(x0, y0 + i, x1, y1 + i, color);
+        }
+    }
+}
+
+void draw_score(int x, int y, int num, short int color) {
+    int thickness = 3; // Adjust thickness here
+    switch (num) {
+        case 0:
+            draw_thick_line(x, y, x + 10, y, color, thickness);
+            draw_thick_line(x, y, x, y + 20, color, thickness);
+            draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+            draw_thick_line(x + 10, y, x + 10, y + 20, color, thickness);
+            break;
+        case 1:
+            draw_thick_line(x + 5, y, x + 5, y + 20, color, thickness);
+            break;
+        case 2:
+            draw_thick_line(x, y, x + 10, y, color, thickness);
+            draw_thick_line(x + 10, y, x + 10, y + 10, color, thickness);
+            draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+            draw_thick_line(x, y + 10, x, y + 20, color, thickness);
+            draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+            break;
+        case 3:
+            draw_thick_line(x, y, x + 10, y, color, thickness);
+            draw_thick_line(x + 10, y, x + 10, y + 20, color, thickness);
+            draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+            draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+            break;
+        case 4:
+            draw_thick_line(x, y, x, y + 10, color, thickness);
+            draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+            draw_thick_line(x + 10, y, x + 10, y + 20, color, thickness);
+            break;
+        case 5:
+            draw_thick_line(x, y, x + 10, y, color, thickness);
+            draw_thick_line(x, y, x, y + 10, color, thickness);
+            draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+            draw_thick_line(x + 10, y + 10, x + 10, y + 20, color, thickness);
+            draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+            break;
+        case 6:
+            draw_thick_line(x, y, x + 10, y, color, thickness);
+            draw_thick_line(x, y, x, y + 20, color, thickness);
+            draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+            draw_thick_line(x + 10, y + 10, x + 10, y + 20, color, thickness);
+            draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+            break;
+        case 7:
+            draw_thick_line(x, y, x + 10, y, color, thickness);
+            draw_thick_line(x + 10, y, x + 10, y + 20, color, thickness);
+            break;
+        case 8:
+            draw_thick_line(x, y, x + 10, y, color, thickness);
+            draw_thick_line(x, y, x, y + 20, color, thickness);
+            draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+            draw_thick_line(x + 10, y, x + 10, y + 20, color, thickness);
+            draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+            break;
+        case 9:
+            draw_thick_line(x, y, x + 10, y, color, thickness);
+            draw_thick_line(x, y, x, y + 10, color, thickness);
+            draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+            draw_thick_line(x + 10, y, x + 10, y + 20, color, thickness);
+            draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+            break;
+        default:
+            break;
+    }
 }
 
 void background_plot() {
