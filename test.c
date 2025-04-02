@@ -8679,72 +8679,76 @@ int main(void) {  // need to integrate with 2d player arrays later
     drawArrow(260, 85, 1);    // Black
     drawArrow(260, 145, -1);  // White
 
-    PS2_data = *(PS2_ptr);         // read the Data register in the PS/2 port
-    RVALID = (PS2_data & 0x8000);  // extract the RVALID field
-    if (RVALID != 0) {
-      /* always save the last three bytes received */
-      byte1 = byte2;
-      byte2 = byte3;
-      byte3 = PS2_data & 0xFF;
-      counter++;
-      if (counter % 3 == 0) {
-        // printf("bytes: %d %d %d\n", byte1, byte2, byte3);
-        int x_sign_bit = byte1 & 0x10;
-        int y_sign_bit = byte1 & 0x20;
+    while (1) {
+      PS2_data = *(PS2_ptr);         // read the Data register in the PS/2 port
+      RVALID = (PS2_data & 0x8000);  // extract the RVALID field
+      if (RVALID != 0) {
+        /* always save the last three bytes received */
+        byte1 = byte2;
+        byte2 = byte3;
+        byte3 = PS2_data & 0xFF;
+        counter++;
+        if (counter % 3 == 0) {
+          // printf("bytes: %d %d %d\n", byte1, byte2, byte3);
+          int x_sign_bit = byte1 & 0x10;
+          int y_sign_bit = byte1 & 0x20;
 
-        bool left = byte1 & 1;
-        bool xdir = (byte1 >> 4) & 1;
-        bool ydir = (byte1 >> 5) & 1;
-        bool middle = (byte1 >> 2) & 1;
-        bool right = (byte1 >> 1) & 1;
+          bool left = byte1 & 1;
+          bool xdir = (byte1 >> 4) & 1;
+          bool ydir = (byte1 >> 5) & 1;
+          bool middle = (byte1 >> 2) & 1;
+          bool right = (byte1 >> 1) & 1;
 
-        uint16_t dx = byte2;
-        uint16_t dy = byte3;
+          uint16_t dx = byte2;
+          uint16_t dy = byte3;
 
-        // printf("(dx, dy): (%d, %d)\n", dx, dy);
+          // printf("(dx, dy): (%d, %d)\n", dx, dy);
 
-        if (xdir == 0) {
-          changex = byte2;
+          if (xdir == 0) {
+            changex = byte2;
 
+          } else {
+            int sign_extended_twos = 0xFFFFFF00 + byte2;
+
+            changex = sign_extended_twos;
+          }
+
+          if (x_sign_bit == 0) {
+            changex = byte2;
+          } else {
+            int sign_extended_twos = 0xFFFFFF00 + byte2;
+            changex = sign_extended_twos;
+          }
+
+          if (y_sign_bit == 0) {
+            changey = byte3;
+          } else {  // negative dx
+            int sign_extended_twos = 0xFFFFFF00 + byte3;
+            changey = sign_extended_twos;
+          }
+
+          // printf("changes: (%d, %d)\n", changex, changey);
+
+          x += changex;
+          y += changey;
+
+          if (x < 0) x = 0;
+          if (x > 319) x = 319;
+          if (y < 0) y = 0;
+          if (y > 239) y = 239;
+
+          counter = 0;
+          // printf("byte2: %d\n", byte2);
+          // printf("byte3: %d\n", byte3);
         } else {
-          int sign_extended_twos = 0xFFFFFF00 + byte2;
-
-          changex = sign_extended_twos;
+          // counter++;
         }
-
-        if (x_sign_bit == 0) {
-          changex = byte2;
-        } else {
-          int sign_extended_twos = 0xFFFFFF00 + byte2;
-          changex = sign_extended_twos;
+        if ((byte2 == 0xAA) && (byte3 == 0x00)) {
+          // mouse inserted; initialize sending of data
+          *(PS2_ptr) = 0xF4;
         }
-
-        if (y_sign_bit == 0) {
-          changey = byte3;
-        } else {  // negative dx
-          int sign_extended_twos = 0xFFFFFF00 + byte3;
-          changey = sign_extended_twos;
-        }
-
-        // printf("changes: (%d, %d)\n", changex, changey);
-
-        x += changex;
-        y += changey;
-
-        if (x < 0) x = 0;
-        if (x > 319) x = 319;
-        if (y < 0) y = 0;
-        if (y > 239) y = 239;
-
-        counter = 0;
-        // printf("byte2: %d\n", byte2);
-        // printf("byte3: %d\n", byte3);
       } else {
-        // counter++;
-      }
-      if ((byte2 == 0xAA) && (byte3 == 0x00)) {
-        // mouse inserted; initialize sending of data
-        *(PS2_ptr) = 0xF4;
+        break;
       }
     }
 
