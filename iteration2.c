@@ -9156,7 +9156,7 @@ void drawValidCircle(int x, int y, int radius) {
       if (((i - x) * (i - x) + (j - y) * (j - y)) >=
               (radius - 1) * (radius - 1) &&
           ((i - x) * (i - x) + (j - y) * (j - y)) <= radius * radius) {
-        drawPixel(i, j, 0xad75);
+        drawPixel(i, j, 0x2fe5);
       }
     }
   }
@@ -9543,11 +9543,6 @@ int main(void) {  // need to integrate with 2d player arrays later
                 flipTiles(rowMove, colMove, color);
                 gameBoard[rowMove][colMove] = color;
                 color *= -1;  // switch color
-                if (!hasLegalMoves(color)) {
-                  color *= -1;
-                  if (!hasLegalMoves(color))
-                    break;  // No moves for both players, game over
-                }
               }
               free(boxClick);
             }
@@ -9563,6 +9558,11 @@ int main(void) {  // need to integrate with 2d player arrays later
       } else {
         break;
       }
+    }
+    if (!hasLegalMoves(color)) {
+      color *= -1;
+      if (!hasLegalMoves(color))
+        break;  // No moves for both players, game over
     }
     drawArrowCursor(x, y);
     if (color == BLACK) {
@@ -9593,7 +9593,7 @@ int main(void) {  // need to integrate with 2d player arrays later
       for (int y = 0; y < HEIGHT; y++) {
         int ind = y * WIDTH + x;
         short int color = black_wins[ind];
-        drawPixel(x, y, color);
+        drawPixel(x, y, 0xffff);
       }
     }
   }
@@ -9603,7 +9603,7 @@ int main(void) {  // need to integrate with 2d player arrays later
       for (int y = 0; y < HEIGHT; y++) {
         int ind = y * WIDTH + x;
         short int color = white_wins[ind];
-        drawPixel(x, y, color);
+        drawPixel(x, y, 0x0);
       }
     }
   }
