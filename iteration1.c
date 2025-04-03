@@ -5,7 +5,7 @@
 
 volatile int *pixel_ctrl_ptr = (int *)0xff203020;
 int pixel_buffer_start;
-int counter = 0;
+int fifo_counter = 0;
 
 #define PS2_PTR 0xFF200100
 #define BLACK -1
@@ -8946,6 +8946,7 @@ int main(void) {  // need to integrate with 2d player arrays later
     int changex = 0;
     int changey = 0;
     static bool prev_left = false;
+    
     while (1) {
       PS2_data = *(PS2_ptr);         // read the Data register in the PS/2 port
       RVALID = (PS2_data & 0x8000);  // extract the RVALID field
@@ -8954,47 +8955,43 @@ int main(void) {  // need to integrate with 2d player arrays later
         byte1 = byte2;
         byte2 = byte3;
         byte3 = PS2_data & 0xFF;
-        counter++;
-        if (counter % 3 == 0) {
-          int x_sign_bit = byte1 & 0x10;
-          int y_sign_bit = byte1 & 0x20;
+        fifo_counter++;
+        if (fifo_counter % 3 == 0) {
+          int x_sign = byte1 & 0x10;
+          int y_sign = byte1 & 0x20;
 
-          bool left = byte1 & 1;
-          bool xdir = (byte1 >> 4) & 1;
-          bool ydir = (byte1 >> 5) & 1;
-          bool middle = (byte1 >> 2) & 1;
-          bool right = (byte1 >> 1) & 1;
+          bool left = byte1 & 0x01;
+          bool xdir = (byte1 >> 4) & 0x01;
+          bool ydir = (byte1 >> 5) & 0x01;
 
-          uint16_t dx = byte2;
-          uint16_t dy = byte3;
+          unsigned int dx = byte2;
+          unsigned int dy = byte3;
 
           if (xdir == 0) {
             changex = byte2;
-
           } else {
-            int sign_extended_twos = 0xFFFFFF00 + byte2;
-
-            changex = sign_extended_twos;
+            int sign_ext = 0xFFFFFF00 + byte2;
+            changex = sign_ext;
           }
 
-          if (x_sign_bit == 0) {
+          if (x_sign == 0) {
             changex = byte2;
           } else {
-            int sign_extended_twos = 0xFFFFFF00 + byte2;
-            changex = sign_extended_twos;
+            int sign_ext = 0xFFFFFF00 + byte2;
+            changex = sign_ext;
           }
 
-          if (y_sign_bit == 0) {
+          if (y_sign == 0) {
             changey = byte3;
-          } else {  // negative dx
-            int sign_extended_twos = 0xFFFFFF00 + byte3;
-            changey = sign_extended_twos;
+          } else {
+            int sign_ext = 0xFFFFFF00 + byte3;
+            changey = sign_ext;
           }
 
           x += changex;
           y += changey;
 
-          // vga board boundaries
+          // vga monitor boundaries
           if (x < 0) x = 0;
           if (x > 319) x = 319;
           if (y < 0) y = 0;
@@ -9005,7 +9002,7 @@ int main(void) {  // need to integrate with 2d player arrays later
           }
 
           prev_left = left;  // Update previous state
-          counter = 0;
+          fifo_counter = 0;
         }
         if ((byte2 == 0xAA) && (byte3 == 0x00)) {
           // mouse inserted; initialize sending of data
