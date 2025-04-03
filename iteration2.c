@@ -8820,12 +8820,7 @@ bool positionInBounds(int row, int col) {
   return (col >= 0 && col < 8 && row >= 0 && row < 8);
 }
 
-int setFirstPlayer() {
-  // seed the rng
-  srand(time(NULL));
-  return (rand() % 2) ? 1 : -1;  // return either -1 (black) or 1 (white)
-  // can maybe have a coin-flipping animation for this
-}
+int setFirstPlayer() { return (rand() % 2) ? 1 : -1; }
 
 bool checkLegalInDirection(int row, int col, int color, int deltaRow,
                            int deltaCol) {
@@ -8939,6 +8934,7 @@ short int Buffer1[240][512];
 short int Buffer2[240][512];
 
 int main(void) {  // need to integrate with 2d player arrays later
+  srand(time(NULL));
   int x = 21;
   int y = 37;
 
@@ -8959,6 +8955,12 @@ int main(void) {  // need to integrate with 2d player arrays later
   clearScreen();
 
   int color = setFirstPlayer();
+  if (color == WHITE) {
+    gameBoard[3][3] = WHITE;
+    gameBoard[4][4] = WHITE;
+    gameBoard[3][4] = BLACK;
+    gameBoard[4][3] = BLACK;
+  }
 
   while (1) {                         // Main code
     backgroundPlot();                 // Plot background image
@@ -9053,9 +9055,9 @@ int main(void) {  // need to integrate with 2d player arrays later
       }
     }
     drawArrowCursor(x, y);
-    if (color == -1) {
+    if (color == BLACK) {
       drawArrow(260, 85, 1);
-    } else if (color == 1) {
+    } else if (color == WHITE) {
       drawArrow(260, 145, -1);  // White
     }
 
