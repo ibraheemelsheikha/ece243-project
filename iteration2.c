@@ -26215,22 +26215,18 @@ int main(void) {  // need to integrate with 2d player arrays later
     waitForVsync();
     pixel_buffer_start = *(pixel_ctrl_ptr + 1);
   }
-  printf("Outside of mouse loop, calculating score now\n");
   int scoreBlack = 0, scoreWhite = 0;
   for (int i = 0; i < 8; i++) {
     for (int j = 0; j < 8; j++) {
       if (gameBoard[i][j] == 1) {
-        printf("White +1\n");
         scoreWhite++;
       }
       if (gameBoard[i][j] == -1) {
         scoreBlack++;
-        printf("Black +1, new black score is: %d\n", scoreBlack);
       }
     }
   }
   if (scoreBlack > scoreWhite) {
-    printf("Black wins\n");
     clearScreen();
     for (int x = 0; x < WIDTH; x++) {
       for (int y = 0; y < HEIGHT + 1; y++) {
