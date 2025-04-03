@@ -8881,9 +8881,12 @@ bool isLegalMove(int row, int col, int color) {
 //***************** MOUSE MAPPING FUNC ****************
 int *extractField(int x, int y) {
   int coord[2] = {0, 0};
-  if (x < BOX_X || y < BOX_Y || x > 8 * BOX_X || y > 8 * BOX_Y) {
+  if (x < BOX_X || y < BOX_Y || x > 8 * BOXSHIFT + BOX_X ||
+      y > 8 * BOXSHIFT + BOX_Y) {
     coord[0] = -1;
     coord[1] = -1;
+    printf("[%d, %d]\n", coord[0], coord[1]);
+    return *coord;
   }
   coord[0] = (int)((x - BOX_X) / BOXSHIFT);
   coord[1] = (int)((y - BOX_Y) / BOXSHIFT);
@@ -9016,7 +9019,7 @@ int main(void) {  // need to integrate with 2d player arrays later
         break;
       }
     }
-    drawPiece(x,y,0xf800,4); //Might replace with arrow or other object
+    drawArrowCursor(x,y);
 
     //*****************************************************************************************
 
