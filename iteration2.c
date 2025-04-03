@@ -25,8 +25,8 @@ int fifo_counter = 0;
 #define BOXSHIFT 23
 
 int gameBoard[8][8] = {{0, 0, 0, 0, 0, 0, 0, 0},  {0, 0, 0, 0, 0, 0, 0, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0},  {0, 0, 0, 1, -1, 0, 0, 0},
-                       {0, 0, 0, -1, 1, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0},
+                       {0, 0, 0, 0, 0, 0, 0, 0},  {0, 0, 0, -1, 1, 0, 0, 0},
+                       {0, 0, 0, 1, -1, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0},
                        {0, 0, 0, 0, 0, 0, 0, 0},  {0, 0, 0, 0, 0, 0, 0, 0}};
 
 // Background image array
@@ -8612,9 +8612,6 @@ void backgroundPlot() {
       drawPixel(x, y, color);
     }
   }
-  drawArrow(260, 85, 1);    // Black
-  drawArrow(260, 145, -1);  // White
-
   drawPiece(260, 50, 0, 30);
   drawPiece(260, 180, 0xffff, 30);
 }
@@ -8911,7 +8908,7 @@ void flipTiles(int row, int col, int color) {
         int newCol = col + deltaCol;
 
         while (gameBoard[newRow][newCol] != color) {
-		  gameBoard[newRow][newCol] = color;
+          gameBoard[newRow][newCol] = color;
           newRow += deltaRow;
           newCol += deltaCol;
         }
@@ -8930,8 +8927,8 @@ int *extractField(int x, int y) {
     coord[0] = -1;
     coord[1] = -1;
   } else {
-  	coord[0] = (int)((x - BOX_X) / BOXSHIFT);
-  	coord[1] = (int)((y - BOX_Y) / BOXSHIFT);
+    coord[0] = (int)((x - BOX_X) / BOXSHIFT);
+    coord[1] = (int)((y - BOX_Y) / BOXSHIFT);
   }
   return coord;  // Return pointer to allocated memory
 }
@@ -8985,7 +8982,7 @@ int main(void) {  // need to integrate with 2d player arrays later
     static bool prev_left = false;
 
     while (1) {
-	  PS2_data = *(PS2_ptr);         // read the Data register in the PS/2 port
+      PS2_data = *(PS2_ptr);         // read the Data register in the PS/2 port
       RVALID = (PS2_data & 0x8000);  // extract the RVALID field
       if (RVALID != 0) {
         /* always save the last three bytes received */
@@ -9032,18 +9029,16 @@ int main(void) {  // need to integrate with 2d player arrays later
 
           if (left && !prev_left) {
             int *boxClick = extractField(x, y);
-			if (boxClick) {
-			  int rowMove = boxClick[0];
-		      int colMove = boxClick[1];
-			  if (isLegalMove(rowMove, colMove, color)) {
-				flipTiles(rowMove, colMove, color);
+            if (boxClick) {
+              int rowMove = boxClick[0];
+              int colMove = boxClick[1];
+              if (isLegalMove(rowMove, colMove, color)) {
+                flipTiles(rowMove, colMove, color);
                 gameBoard[rowMove][colMove] = color;
-				color *= -1;
-				printf("Now it is %d's turn\n", color);
-
+                color *= -1;
               }
-			  free(boxClick);
-			}
+              free(boxClick);
+            }
           }
 
           prev_left = left;  // Update previous state
@@ -9058,6 +9053,11 @@ int main(void) {  // need to integrate with 2d player arrays later
       }
     }
     drawArrowCursor(x, y);
+    if (color == -1) {
+      drawArrow(260, 85, 1);
+    } else if (color == 1) {
+      drawArrow(260, 145, -1);  // White
+    }
 
     //*****************************************************************************************
 
