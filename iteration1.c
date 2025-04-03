@@ -16,8 +16,13 @@ int counter = 0;
 #define WIDTH 320   // VGA width
 #define FIRSTX 21   // x-coordinate of top left square center
 #define FIRSTY 37   // y-coordinate of top left square center
-#define SHIFT 24  // pixel shift to get to adjacent squares x or y location (SAME FOR BOTH X
+#define SHIFT \
+  24  // pixel shift to get to adjacent squares x or y location (SAME FOR BOTH X
       // AND Y)
+
+#define BOX_X 11
+#define BOX_Y 27
+#define BOXSHIFT 23
 
 int gameBoard[8][8] = {{0, 0, 0, 0, 0, 0, 0, 0},  {0, 0, 0, 0, 0, 0, 0, 0},
                        {0, 0, 0, 0, 0, 0, 0, 0},  {0, 0, 0, 1, -1, 0, 0, 0},
@@ -8589,7 +8594,6 @@ void drawArrow(int x, int y, int fact) {
   }
 }
 
-
 void clearScreen() {
   int y, x;
   for (x = 0; x < 512; x++) {
@@ -8655,11 +8659,11 @@ void piecesPlot() {
   }
 }
 
-
 void drawValidCircle(int x, int y, int radius) {
   for (int j = y - radius; j <= y + radius; j++) {
     for (int i = x - radius; i <= x + radius; i++) {
-      if (((i - x) * (i - x) + (j - y) * (j - y)) >= (radius - 1) * (radius - 1) &&
+      if (((i - x) * (i - x) + (j - y) * (j - y)) >=
+              (radius - 1) * (radius - 1) &&
           ((i - x) * (i - x) + (j - y) * (j - y)) <= radius * radius) {
         drawPixel(i, j, 0xad75);
       }
@@ -8813,17 +8817,19 @@ void calc_score(int x, int y, short int color, int piece) {
 
 //***************************************
 
-//***************************** GAMEPLAY FUNCS ************************************
+//***************************** GAMEPLAY FUNCS
+//************************************
 bool positionInBounds(int row, int col) {
   return (col >= 0 && col < 8 && row >= 0 && row < 8);
 }
 
-bool checkLegalInDirection(int row, int col, int color, int deltaRow,int deltaCol) {
-	int opp_color = color * -1;
+bool checkLegalInDirection(int row, int col, int color, int deltaRow,
+                           int deltaCol) {
+  int opp_color = color * -1;
 
   // if current position is occupied or out-of-bounds, return false
   if (gameBoard[row][col] != EMPTY || !positionInBounds(row, col)) {
-	  return false;
+    return false;
   }
 
   // move to adjacent squarev
@@ -8833,19 +8839,18 @@ bool checkLegalInDirection(int row, int col, int color, int deltaRow,int deltaCo
   // if new position out of bounds, if a player's piece is already there, or if
   // it is empty, return false
   if ((!positionInBounds(newRow, newCol)) ||
-  gameBoard[newRow][newCol] == color ||
-  gameBoard[newRow][newCol] == EMPTY) {
-	  return false;
+      gameBoard[newRow][newCol] == color ||
+      gameBoard[newRow][newCol] == EMPTY) {
+    return false;
   }
-  
 
   // while the new position is in-bounds and there is an opponent's piece in the
   // direction we are travelling, keep checking in that direction, as it is
   // valid
   while ((positionInBounds(newRow, newCol)) &&
-  (gameBoard[newRow][newCol] == opp_color)) {
-	  newRow += deltaRow;
-  newCol += deltaCol;
+         (gameBoard[newRow][newCol] == opp_color)) {
+    newRow += deltaRow;
+    newCol += deltaCol;
   }
   // while loop just exited either because position is out-of-bounds, or because
   // it encountered a non-opponent piece at this point, (newRow, newCol)
@@ -8854,26 +8859,44 @@ bool checkLegalInDirection(int row, int col, int color, int deltaRow,int deltaCo
 
   // check again if new position is out-of-bounds
   if (!positionInBounds(newRow, newCol)) {
-	  return false;
+    return false;
   }
 
   // if opponent's pieces have been sandwiched, return true
   if (gameBoard[newRow][newCol] == color) {
-	  return true;
+    return true;
   }
 
-	return false;
+  return false;
 }
 
 void displayLegalMoves(int row, int col, int color) {
-  // check all legal moves in all directions and draw circles indicating valid moves
-	for (int deltaRow = -1; deltaRow <= 1; deltaRow++) {
+  // check all legal moves in all directions and draw circles indicating valid
+  // moves
+  for (int deltaRow = -1; deltaRow <= 1; deltaRow++) {
     for (int deltaCol = -1; deltaCol <= 1; deltaCol++) {
       if (checkLegalInDirection(row, col, color, deltaRow, deltaCol)) {
-		  drawValidCircle(FIRSTX + SHIFT * row, FIRSTY + SHIFT * col, PIECE_RADIUS);
+        drawValidCircle(FIRSTX + SHIFT * row, FIRSTY + SHIFT * col,
+                        PIECE_RADIUS);
       }
     }
   }
+}
+
+//***************** MOUSE MAPPING FUNC ****************
+int *extractField(int x, int y) {
+  int coord[2] = {0, 0};
+  if (x < BOX_X || y < BOX_Y || x > 8 * BOXSHIFT + BOX_X ||
+      y > 8 * BOXSHIFT + BOX_Y) {
+    coord[0] = -1;
+    coord[1] = -1;
+    printf("[%d, %d]\n", coord[0], coord[1]);
+    return *coord;
+  }
+  coord[0] = (int)((x - BOX_X) / BOXSHIFT);
+  coord[1] = (int)((y - BOX_Y) / BOXSHIFT);
+  printf("[%d, %d]\n", coord[0], coord[1]);
+  return *coord;
 }
 
 //***********GAME MAIN LOGIC*************
@@ -8891,8 +8914,6 @@ int main(void) {  // need to integrate with 2d player arrays later
 
   volatile int *PS2_ptr = (int *)0xFF200100;  // PS/2 port address
 
-  
-
   int PS2_data, RVALID;
   *(pixel_ctrl_ptr + 1) = (int)&Buffer1;
   waitForVsync();
@@ -8903,28 +8924,28 @@ int main(void) {  // need to integrate with 2d player arrays later
   pixel_buffer_start = *(pixel_ctrl_ptr + 1);
   clearScreen();
 
-  int color = 1; //WHOS TURN IT IS
+  int color = 1;  // WHOS TURN IT IS
 
-  while (1) {  // Main code
+  while (1) {                         // Main code
     backgroundPlot();                 // Plot background image
     piecesPlot();                     // Plot game pieces
     calc_score(248, 40, 0xffff, -1);  // Black center
     calc_score(248, 170, 0x0000, 1);  // WHTTE center
-	  
-    for (int i = 0; i < 8; i++){
-      for (int j =0;j<8;j++){
-        if (gameBoard[i][j]==0){
-          displayLegalMoves(i, j, color); 
+
+    for (int i = 0; i < 8; i++) {
+      for (int j = 0; j < 8; j++) {
+        if (gameBoard[i][j] == 0) {
+          displayLegalMoves(i, j, color);
         }
       }
     }
-    
 
     //****************************************  MOUSE CODE
     //***************************************
 
     int changex = 0;
     int changey = 0;
+    static bool prev_left = false;
     while (1) {
       PS2_data = *(PS2_ptr);         // read the Data register in the PS/2 port
       RVALID = (PS2_data & 0x8000);  // extract the RVALID field
@@ -8969,16 +8990,21 @@ int main(void) {  // need to integrate with 2d player arrays later
             int sign_extended_twos = 0xFFFFFF00 + byte3;
             changey = sign_extended_twos;
           }
-			
+
           x += changex;
           y += changey;
 
-          //vga board boundaries
-			if (x < 0) x = 0;
+          // vga board boundaries
+          if (x < 0) x = 0;
           if (x > 319) x = 319;
           if (y < 0) y = 0;
           if (y > 239) y = 239;
 
+          if (left && !prev_left) {
+            int *boxClick = extractField(x, y);
+          }
+
+          prev_left = left;  // Update previous state
           counter = 0;
         }
         if ((byte2 == 0xAA) && (byte3 == 0x00)) {
