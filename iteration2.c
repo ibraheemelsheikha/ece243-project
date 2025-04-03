@@ -8892,6 +8892,17 @@ bool isLegalMove(int row, int col, int color) {
   return false;
 }
 
+bool hasLegalMoves(int color) {
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      if (isLegalMove(row, col, color)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 int squareContents(int row, int col) { return gameBoard[row][col]; }
 
 void flipTiles(int row, int col, int color) {
@@ -9037,7 +9048,12 @@ int main(void) {  // need to integrate with 2d player arrays later
               if (isLegalMove(rowMove, colMove, color)) {
                 flipTiles(rowMove, colMove, color);
                 gameBoard[rowMove][colMove] = color;
-                color *= -1;
+                color *= -1;  // switch color
+                if (!hasLegalMoves(color)) {
+                  color *= -1;
+                  if (!hasLegalMoves(color))
+                    break;  // No moves for both players, game over
+                }
               }
               free(boxClick);
             }
