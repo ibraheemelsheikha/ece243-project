@@ -8910,8 +8910,8 @@ void flipTiles(int row, int col, int color) {
         int newRow = row + deltaRow;
         int newCol = col + deltaCol;
 
-        while (squareContents(newRow, newCol) != color) {
-          drawPiece(newRow, newCol, color, PIECE_RADIUS);
+        while (gameBoard[newRow][newCol] != color) {
+		  gameBoard[newRow][newCol] = color;
           newRow += deltaRow;
           newCol += deltaCol;
         }
@@ -8924,18 +8924,16 @@ void flipTiles(int row, int col, int color) {
 
 //***************** MOUSE MAPPING FUNC ****************
 int *extractField(int x, int y) {
-  int coord[2] = {0, 0};
+  int *coord = malloc(2 * sizeof(int));
   if (x < BOX_X || y < BOX_Y || x > 8 * BOXSHIFT + BOX_X ||
       y > 8 * BOXSHIFT + BOX_Y) {
     coord[0] = -1;
     coord[1] = -1;
-    printf("[%d, %d]\n", coord[0], coord[1]);
-    return *coord;
+  } else {
+  	coord[0] = (int)((x - BOX_X) / BOXSHIFT);
+  	coord[1] = (int)((y - BOX_Y) / BOXSHIFT);
   }
-  coord[0] = (int)((x - BOX_X) / BOXSHIFT);
-  coord[1] = (int)((y - BOX_Y) / BOXSHIFT);
-  printf("[%d, %d]\n", coord[0], coord[1]);
-  return *coord;
+  return coord;  // Return pointer to allocated memory
 }
 
 //***********GAME MAIN LOGIC*************
@@ -8987,7 +8985,7 @@ int main(void) {  // need to integrate with 2d player arrays later
     static bool prev_left = false;
 
     while (1) {
-      PS2_data = *(PS2_ptr);         // read the Data register in the PS/2 port
+	  PS2_data = *(PS2_ptr);         // read the Data register in the PS/2 port
       RVALID = (PS2_data & 0x8000);  // extract the RVALID field
       if (RVALID != 0) {
         /* always save the last three bytes received */
@@ -9001,7 +8999,6 @@ int main(void) {  // need to integrate with 2d player arrays later
 
           bool left = byte1 & 0x01;
           bool xdir = (byte1 >> 4) & 0x01;
-          // bool ydir = (byte1 >> 5) & 0x01;
 
           if (xdir == 0) {
             changex = byte2;
@@ -9035,12 +9032,18 @@ int main(void) {  // need to integrate with 2d player arrays later
 
           if (left && !prev_left) {
             int *boxClick = extractField(x, y);
-            int rowMove = boxClick[0];
-            int colMove = boxClick[1];
-            if (isLegalMove(rowMove, colMove, color)) {
-              flipTiles(rowMove, colMove, color);
-              gameBoard[rowMove][colMove] = color;
-            }
+			if (boxClick) {
+			  int rowMove = boxClick[0];
+		      int colMove = boxClick[1];
+			  if (isLegalMove(rowMove, colMove, color)) {
+				flipTiles(rowMove, colMove, color);
+                gameBoard[rowMove][colMove] = color;
+				color *= -1;
+				printf("Now it is %d's turn\n", color);
+
+              }
+			  free(boxClick);
+			}
           }
 
           prev_left = left;  // Update previous state
