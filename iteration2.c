@@ -9032,7 +9032,7 @@ int main(void) {  // need to integrate with 2d player arrays later
           }
 
           x += changex;
-          y += changey;
+          y -= changey;
 
           // vga monitor boundaries
           if (x < 0) x = 0;
