@@ -20,6 +20,11 @@ int counter = 0;
   24  // pixel shift to get to adjacent squares x or y location (SAME FOR BOTH X
       // AND Y)
 
+int gameBoard[8][8] = {{0, 0, 0, 0, 0, 0, 0, 0},  {0, 0, 0, 0, 0, 0, 0, 0},
+                       {0, 0, 0, 0, 0, 0, 0, 0},  {0, 0, 0, 1, -1, 0, 0, 0},
+                       {0, 0, 0, -1, 1, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0},
+                       {0, 0, 0, 0, 0, 0, 0, 0},  {0, 0, 0, 0, 0, 0, 0, 0}};
+
 // Background image array
 static const int back[] = {
     0x3a52, 0x3a52, 0x3a52, 0x3a52, 0x3a52, 0x3a52, 0x3a52, 0x3a72, 0x3a72,
@@ -8557,6 +8562,9 @@ static const int back[] = {
     0x2044, 0x1824, 0x1003, 0x1004, 0x1024, 0x1024, 0x1845, 0x1844, 0x1044,
     0x1023, 0x1023, 0x1003};
 
+//****************************** DRAW FUNCTIONS
+//********************************************** */
+
 void drawPixel(int x, int y, short int color) {
   volatile short int *one_pixel_address;
   one_pixel_address = (short int *)(pixel_buffer_start + (y << 10) + (x << 1));
@@ -8582,16 +8590,6 @@ void drawArrow(int x, int y, int fact) {
   }
 }
 
-void drawValidCircle(int x, int y, int radius) {
-  for (int j = y - radius; j <= y + radius; j++) {
-    for (int i = x - radius; i <= x + radius; i++) {
-      if (((i - x) * (i - x) + (j - y) * (j - y)) >= (9 - 1) * (9 - 1) &&
-          ((i - x) * (i - x) + (j - y) * (j - y)) <= radius * radius) {
-        drawPixel(i, j, 0x8c70);
-      }
-    }
-  }
-}
 
 void clearScreen() {
   int y, x;
@@ -8611,27 +8609,25 @@ void backgroundPlot() {
       drawPixel(x, y, color);
     }
   }
-  // draws the four central pieces and the score pieces
+  drawArrow(260, 85, 1);    // Black
+  drawArrow(260, 145, -1);  // White
+
   drawPiece(260, 50, 0, 30);
   drawPiece(260, 180, 0xffff, 30);
-  drawPiece(21 + 3 * 24, 37 + 3 * 24, 0xffff, 9);
-  drawPiece(21 + 4 * 24, 37 + 3 * 24, 0, 9);
-  drawPiece(21 + 3 * 24, 37 + 4 * 24, 0, 9);
-  drawPiece(21 + 4 * 24, 37 + 4 * 24, 0xffff, 9);
 }
 
 void drawArrowCursor(int x, int y) {
   for (int i = 0; i < 8; i++) {
     for (int j = -i; j <= i; j++) {
       if (x + j >= 0 && x + j < WIDTH && y + i >= 0 && y + i < HEIGHT) {
-        drawPixel(x + j, y + i, 0x14fd);
+        drawPixel(x + j, y + i, 0xf800);
       }
     }
   }
   for (int i = 0; i < 6; i++) {
     for (int j = -2; j <= 2; j++) {
       if (x + j >= 0 && x + j < WIDTH && y + 8 + i >= 0 && y + 8 + i < HEIGHT) {
-        drawPixel(x + j, y + 8 + i, 0x14fd);
+        drawPixel(x + j, y + 8 + i, 0xf800);
       }
     }
   }
@@ -8646,6 +8642,239 @@ void waitForVsync() {
   }
 }
 
+void piecesPlot() {
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      short int color = 0xffff;
+      if (gameBoard[i][j] != 0) {
+        if (gameBoard[i][j] == -1) {
+          color = 0;
+        }
+        drawPiece(FIRSTX + i * SHIFT, FIRSTY + j * SHIFT, color, 9);
+      }
+    }
+  }
+}
+
+//****************************************************************************************
+//*/
+
+//************* SCORE FUNCS ************
+
+void draw_line(int x0, int y0, int x1, int y1, int color) {
+  int y_step = 1;
+  bool is_steep = abs(y1 - y0) > abs(x1 - x0);
+  if (is_steep) {
+    int temp = x0;
+    x0 = y0;
+    y0 = temp;
+
+    temp = x1;
+    x1 = y1;
+    y1 = temp;
+  }
+
+  if (x0 > x1) {
+    int temp = x0;
+    x0 = x1;
+    x1 = temp;
+
+    temp = y0;
+    y0 = y1;
+    y1 = temp;
+  }
+
+  int deltax = x1 - x0;
+  int deltay = abs(y1 - y0);
+  int error = -(deltax / 2);
+  int y = y0;
+  if (y0 < y1) {
+    y_step = 1;
+  } else {
+    y_step = -1;
+  }
+
+  for (int x = x0; x < x1; x++) {
+    if (is_steep) {
+      drawPixel(y, x, color);  // fix
+    } else {
+      drawPixel(x, y, color);  // fix
+    }
+    error = error + deltay;
+    if (error > 0) {
+      y += y_step;
+      error -= deltax;
+    }
+  }
+}
+
+void draw_thick_line(int x0, int y0, int x1, int y1, int color, int thickness) {
+  for (int i = 0; i < thickness; i++) {
+    if (x0 == x1) {  // Vertical Line
+      draw_line(x0 + i, y0, x1 + i, y1, color);
+    } else if (y0 == y1) {  // Horizontal Line
+      draw_line(x0, y0 + i, x1, y1 + i, color);
+    }
+  }
+}
+
+void draw_score(int x, int y, int num, short int color) {
+  int thickness = 3;  // Adjust thickness here
+  switch (num) {
+    case 0:
+      draw_thick_line(x, y, x + 10, y, color, thickness);
+      draw_thick_line(x, y, x, y + 20, color, thickness);
+      draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+      draw_thick_line(x + 10, y, x + 10, y + 20, color, thickness);
+      break;
+    case 1:
+      draw_thick_line(x + 5, y, x + 5, y + 20, color, thickness);
+      break;
+    case 2:
+      draw_thick_line(x, y, x + 10, y, color, thickness);
+      draw_thick_line(x + 10, y, x + 10, y + 10, color, thickness);
+      draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+      draw_thick_line(x, y + 10, x, y + 20, color, thickness);
+      draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+      break;
+    case 3:
+      draw_thick_line(x, y, x + 10, y, color, thickness);
+      draw_thick_line(x + 10, y, x + 10, y + 20, color, thickness);
+      draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+      draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+      break;
+    case 4:
+      draw_thick_line(x, y, x, y + 10, color, thickness);
+      draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+      draw_thick_line(x + 10, y, x + 10, y + 20, color, thickness);
+      break;
+    case 5:
+      draw_thick_line(x, y, x + 10, y, color, thickness);
+      draw_thick_line(x, y, x, y + 10, color, thickness);
+      draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+      draw_thick_line(x + 10, y + 10, x + 10, y + 20, color, thickness);
+      draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+      break;
+    case 6:
+      draw_thick_line(x, y, x + 10, y, color, thickness);
+      draw_thick_line(x, y, x, y + 20, color, thickness);
+      draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+      draw_thick_line(x + 10, y + 10, x + 10, y + 20, color, thickness);
+      draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+      break;
+    case 7:
+      draw_thick_line(x, y, x + 10, y, color, thickness);
+      draw_thick_line(x + 10, y, x + 10, y + 20, color, thickness);
+      break;
+    case 8:
+      draw_thick_line(x, y, x + 10, y, color, thickness);
+      draw_thick_line(x, y, x, y + 20, color, thickness);
+      draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+      draw_thick_line(x + 10, y, x + 10, y + 20, color, thickness);
+      draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+      break;
+    case 9:
+      draw_thick_line(x, y, x + 10, y, color, thickness);
+      draw_thick_line(x, y, x, y + 10, color, thickness);
+      draw_thick_line(x, y + 10, x + 10, y + 10, color, thickness);
+      draw_thick_line(x + 10, y, x + 10, y + 20, color, thickness);
+      draw_thick_line(x, y + 20, x + 10, y + 20, color, thickness);
+      break;
+    default:
+      break;
+  }
+}
+
+void calc_score(int x, int y, short int color, int piece) {
+  int score = 0;
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      if (gameBoard[i][j] == piece) {
+        score++;
+      }
+    }
+  }
+  int dig1 = (int)(score / 10);
+  draw_score(x, y, dig1, color);
+
+  int dig2 = score % 10;
+  draw_score(x + 15, y, dig2, color);
+}
+
+//***************************************
+
+//***************************** GAMEPLAY FUNCS ************************************
+bool positionInBounds(int row, int col) {
+  return (col >= 0 && col < 8 && row >= 0 && row < 8);
+}
+
+bool checkLegalInDirection(int row, int col, int color, int deltaRow,int deltaCol) {
+  int opp_color = color * -1;
+
+  // if current position is occupied or out-of-bounds, return false
+  if (gameBoard[row][col] != EMPTY || !positionInBounds(row, col)) {
+  return false;
+  }
+
+  // move to adjacent squarev
+  int newRow = row + deltaRow;
+  int newCol = col + deltaCol;
+
+  // if new position out of bounds, if a player's piece is already there, or if
+  // it is empty, return false
+  if ((!positionInBounds(newRow, newCol)) ||
+  gameBoard[row][col] == color ||
+  gameBoard[row][col] == EMPTY)
+  return false;
+
+  // while the new position is in-bounds and there is an opponent's piece in the
+  // direction we are travelling, keep checking in that direction, as it is
+  // valid
+  while ((positionInBounds(newRow, newCol)) &&
+  (gameBoard[newRow][newCol] == opp_color)) {
+  newRow += deltaRow;
+  newCol += deltaCol;
+  }
+  // while loop just exited either because position is out-of-bounds, or because
+  // it encountered a non-opponent piece at this point, (newRow, newCol)
+  // represent the position immediately after the last opponent piece in that
+  // direction
+
+  // check again if new position is out-of-bounds
+  if (!positionInBounds(newRow, newCol)) {
+  return false;
+  }
+
+  // if opponent's pieces have been sandwiched, return true
+  if (gameBoard[newRow][newCol] == color) {
+  return true;
+  }
+
+  return false;
+}
+
+void displayLegalMoves(int row, int col, int color) {
+  for (int deltaRow = -1; deltaRow <= 1; deltaRow++) {
+    for (int deltaCol = -1; deltaCol <= 1; deltaCol++) {
+      if (checkLegalInDirection(row, col, color, deltaRow, deltaCol)) {
+        drawPiece(FIRSTX + row*SHIFT, FIRSTY + col*SHIFT, 0x6B4D, PIECE_RADIUS);
+      }
+    }
+  }
+}
+
+bool isLegalMove(int row, int col, int color) {
+  for (int deltaRow = -1; deltaRow <= 1; deltaRow++) {
+    for (int deltaCol = -1; deltaCol <= 1; deltaCol++) {
+      if (checkLegalInDirection(row,col,color,deltaRow, deltaCol))
+        return true;
+    }
+  }
+  return false;
+}
+
+//***********GAME MAIN LOGIC*************
+
 short int Buffer1[240][512];
 short int Buffer2[240][512];
 
@@ -8659,6 +8888,8 @@ int main(void) {  // need to integrate with 2d player arrays later
 
   volatile int *PS2_ptr = (int *)0xFF200100;  // PS/2 port address
 
+  
+
   int PS2_data, RVALID;
   *(pixel_ctrl_ptr + 1) = (int)&Buffer1;
   waitForVsync();
@@ -8670,15 +8901,26 @@ int main(void) {  // need to integrate with 2d player arrays later
   clearScreen();
 
   while (1) {  // Main code
+    int color = 1; //WHOS TURN IT IS
+    backgroundPlot();                 // Plot background image
+    piecesPlot();                     // Plot game pieces
+    calc_score(248, 40, 0xffff, -1);  // Black center
+    calc_score(248, 170, 0x0000, 1);  // WHTTE center
+    
+    for (int i = 0; i < 8; i++){
+      for (int j =0;j<8;j++){
+        if (gameBoard[i][j]==0){
+          displayLegalMoves(i, j, color); 
+        }
+      }
+    }
+    
+
+    //****************************************  MOUSE CODE
+    //***************************************
+
     int changex = 0;
     int changey = 0;
-
-    backgroundPlot();
-
-    drawPiece(21 + 24, 37 + 24, 0xffff, 9);
-    drawArrow(260, 85, 1);    // Black
-    drawArrow(260, 145, -1);  // White
-
     while (1) {
       PS2_data = *(PS2_ptr);         // read the Data register in the PS/2 port
       RVALID = (PS2_data & 0x8000);  // extract the RVALID field
@@ -8751,8 +8993,10 @@ int main(void) {  // need to integrate with 2d player arrays later
         break;
       }
     }
-
     drawArrowCursor(x, y);
+
+    //*****************************************************************************************
+
     waitForVsync();
     pixel_buffer_start = *(pixel_ctrl_ptr + 1);
   }
